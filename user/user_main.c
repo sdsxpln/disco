@@ -45,11 +45,12 @@ static void ICACHE_FLASH_ATTR mqttDataCb(uint32_t* args, const char* topic, uint
   os_memcpy(dataBuf, data, data_len);
   dataBuf[data_len] = 0;
   INFO("Receive data: %s \r\n", dataBuf);
-  if (strcmp("0", dataBuf)) {
+  if (strcmp("0", dataBuf) == 0) {
 #ifdef DISCO_BALL
     io_pwm_off();
 #endif
 #ifdef DISCO_LIGHT
+    INFO("RELAY OFF\n");
     io_relay_off();
 #endif
   } else {
@@ -57,6 +58,7 @@ static void ICACHE_FLASH_ATTR mqttDataCb(uint32_t* args, const char* topic, uint
     io_pwm_on(20000);
 #endif
 #ifdef DISCO_LIGHT
+    INFO("RELAY ON\n");
     io_relay_on();
 #endif
   }
