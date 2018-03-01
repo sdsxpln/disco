@@ -10,5 +10,6 @@
 
 void ICACHE_FLASH_ATTR io_pwm_initialize();
 void ICACHE_FLASH_ATTR io_pwm_on(int duty);
+void ICACHE_FLASH_ATTR io_pwm_on_with_percentage(int percentage);
 void ICACHE_FLASH_ATTR io_pwm_off();
 #endif

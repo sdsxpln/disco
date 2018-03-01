@@ -7,6 +7,8 @@
 #include "gpio.h"
 #include "user_interface.h"
 #include "mem.h"
+#include "json.h"
+#include "jsonparse.h"
 #ifdef DISCO_BALL
 #include "io_pwm.h"
 #endif
@@ -15,6 +17,7 @@
 #endif
 
 MQTT_Client mqttClient;
+
 static void ICACHE_FLASH_ATTR wifiConnectCb(uint8_t status) {
   if (status == STATION_GOT_IP) {
     MQTT_Connect(&mqttClient);
@@ -26,7 +29,7 @@ static void ICACHE_FLASH_ATTR wifiConnectCb(uint8_t status) {
 static void ICACHE_FLASH_ATTR mqttConnectedCb(uint32_t *args) {
   MQTT_Client* client = (MQTT_Client*)args;
   INFO("MQTT: Connected\r\n");
-  MQTT_Subscribe(client, "/ci/disco", 0);
+  MQTT_Subscribe(client, "/ciot/cercle/1/0/event/disco/intensity", 0);
 }
 
 static void ICACHE_FLASH_ATTR mqttDisconnectedCb(uint32_t *args) {
@@ -34,9 +37,26 @@ static void ICACHE_FLASH_ATTR mqttDisconnectedCb(uint32_t *args) {
   INFO("MQTT: Disconnected\r\n");
 }
 
-static void ICACHE_FLASH_ATTR mqttPublishedCb(uint32_t *args) {
-  MQTT_Client* client = (MQTT_Client*)args;
-  INFO("MQTT: Published\r\n");
+static int ICACHE_FLASH_ATTR get_value_from_json(char* raw_json, int length) {
+  struct jsonparse_state state;
+  jsonparse_setup(&state, raw_json, length);
+
+  int json_type;
+  while (json_type = jsonparse_next(&state)) {
+    switch (json_type) {
+      case JSON_TYPE_INT:
+        INFO("Int\n");
+        int state_value = jsonparse_get_value_as_int(&state);
+        return state_value;
+      // case JSON_TYPE_NUMBER:
+      //   printf("Number: %ld\n", jsonparse_get_value_as_long(&state));
+      //   break;
+      case JSON_TYPE_ERROR:
+      default:
+        INFO("Unknown file format: %d\n", json_type);
+        return 0;
+    }
+  }
 }
 
 static void ICACHE_FLASH_ATTR mqttDataCb(uint32_t* args, const char* topic, uint32_t topic_len, const char* data, uint32_t data_len) {
@@ -45,24 +65,26 @@ static void ICACHE_FLASH_ATTR mqttDataCb(uint32_t* args, const char* topic, uint
   os_memcpy(dataBuf, data, data_len);
   dataBuf[data_len] = 0;
   INFO("Receive data: %s \r\n", dataBuf);
-  if (strcmp("0", dataBuf) == 0) {
+
+  int percentage = get_value_from_json(dataBuf, data_len);
+
+  os_free(dataBuf);
+
+  if (percentage == 0) {
 #ifdef DISCO_BALL
     io_pwm_off();
 #endif
 #ifdef DISCO_LIGHT
-    INFO("RELAY OFF\n");
     io_relay_off();
 #endif
   } else {
 #ifdef DISCO_BALL
-    io_pwm_on(20000);
+    io_pwm_on_with_percentage(percentage);
 #endif
 #ifdef DISCO_LIGHT
-    INFO("RELAY ON\n");
     io_relay_on();
 #endif
   }
-  os_free(dataBuf);
 }
 
 void ICACHE_FLASH_ATTR print_info() {
@@ -97,7 +119,6 @@ static void ICACHE_FLASH_ATTR app_init(void) {
   MQTT_InitLWT(&mqttClient, "/lwt", "offline", 0, 0);
   MQTT_OnConnected(&mqttClient, mqttConnectedCb);
   MQTT_OnDisconnected(&mqttClient, mqttDisconnectedCb);
-  MQTT_OnPublished(&mqttClient, mqttPublishedCb);
   MQTT_OnData(&mqttClient, mqttDataCb);
 
   WIFI_Connect(STA_SSID, STA_PASS, wifiConnectCb);

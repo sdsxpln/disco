@@ -13,6 +13,12 @@ void ICACHE_FLASH_ATTR io_pwm_on(int duty) {
   pwm_start();
 }
 
+void ICACHE_FLASH_ATTR io_pwm_on_with_percentage(int percentage) {
+  // TODO Change the next calculus to use more macro
+  int duty = (percentage * PWMPERIOD * 10) / 45; // See reference for formula to calculate the duty from the percentage.
+  io_pwm_on(duty);
+}
+
 void ICACHE_FLASH_ATTR io_pwm_off() {
   pwm_set_duty(0, PWMNUM);
   pwm_start();
