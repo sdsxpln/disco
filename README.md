@@ -10,19 +10,20 @@ The MQTT library used in this project is [esp_mqtt](https://github.com/tuanpmt/e
 
 Be sure to change the settings in the files in `include/user_config.h`.
 
-The SDK and GCC for xtensa should be installed on your computer before compiling.
-
+The NON OS SDK and GCC toolchain for xtensa should be installed on your computer before compiling.
 
 ```bash
 cd esp_mqtt
 #clean
 make clean
-# make the disco ball code
+# Compile the disco ball code
 make SDK_BASE=<your sdk path>/ESP8266_NONOS_SDK ESPTOOL=<your esptool path>/esptool/esptool.py DISCO_BALL=yes all
-# make the disco light code
+# Compile the disco light code
 make SDK_BASE=<your sdk path>/ESP8266_NONOS_SDK ESPTOOL=<your esptool path>/esptool/esptool.py DISCO_LIGHT=yes all
-#flash
+# Flash (works for wemos other ESP-12 based devboard)
 make ESPPORT=/dev/ttyUSB0 flash
+# Flash on an ESP-01
+make ESPPORT=/dev/ttyUSB0 ESP_SIZE=16m flash
 ```
 
 ## LICENSE
